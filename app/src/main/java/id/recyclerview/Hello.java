@@ -11,7 +11,7 @@ import id.recyclerview.view.GridRecyclerViewActivity;
 import id.recyclerview.view.HorizontalScrollViewActivity;
 import id.recyclerview.view.ListRecyclerViewActivity;
 
-public class Main extends AppCompatActivity implements View.OnClickListener {
+public class Hello extends AppCompatActivity implements View.OnClickListener {
     Button btnList, btnGrid, btnCustom, btnHorizontal;
 
     @Override
