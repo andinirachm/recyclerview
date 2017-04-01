@@ -33,13 +33,13 @@ public class Hello extends AppCompatActivity implements View.OnClickListener {
     @Override
     public void onClick(View view) {
         if (view == btnList) {
-            startActivity(new Intent(Main.this, ListRecyclerViewActivity.class));
+            startActivity(new Intent(Hello.this, ListRecyclerViewActivity.class));
         } else if (view == btnGrid) {
-            startActivity(new Intent(Main.this, GridRecyclerViewActivity.class));
+            startActivity(new Intent(Hello.this, GridRecyclerViewActivity.class));
         } else if (view == btnCustom) {
-            startActivity(new Intent(Main.this, CustomRecyclerViewActivity.class));
+            startActivity(new Intent(Hello.this, CustomRecyclerViewActivity.class));
         } else {
-            startActivity(new Intent(Main.this, HorizontalScrollViewActivity.class));
+            startActivity(new Intent(Hello.this, HorizontalScrollViewActivity.class));
         }
     }
 }
