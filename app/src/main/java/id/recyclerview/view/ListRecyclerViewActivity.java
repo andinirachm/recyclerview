@@ -1,70 +1,106 @@
 package id.recyclerview.view;
 
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.DefaultItemAnimator;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.view.View;
-import android.widget.Toast;
+import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.List;
 
+import id.recyclerview.OnScrollListenerExtended;
 import id.recyclerview.R;
-import id.recyclerview.adapter.ListRecyclerAdapter;
-import id.recyclerview.interfaces.ClickListener;
-import id.recyclerview.interfaces.OnLoadMoreListener;
-import id.recyclerview.model.UGCModel;
-import id.recyclerview.utils.RecyclerTouchListener;
+import id.recyclerview.adapter.ListUGCRecyclerAdapter;
+import id.recyclerview.controller.GeneralController;
+import id.recyclerview.controller.UGCController;
+import id.recyclerview.model.UGCHomeResponseModel;
 
 public class ListRecyclerViewActivity extends AppCompatActivity {
     RecyclerView recyclerView;
-    ListRecyclerAdapter adapter;
-    List<UGCModel> list = new ArrayList<>();
+    ListUGCRecyclerAdapter adapter;
+    List<UGCHomeResponseModel> list = new ArrayList<>();
+
+    int limit = 10;
+    private boolean isLoading = false;
+    private boolean isLastPage = false;
+    private static final int PAGE_START = 1;
+    private int currentPage = PAGE_START;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_list_recycler_view);
 
-        createData();
+        getFirstData();
 
         recyclerView = (RecyclerView) findViewById(R.id.recycler_view);
-        RecyclerView.LayoutManager manager = new LinearLayoutManager(ListRecyclerViewActivity.this);
-        recyclerView.setLayoutManager(manager);
+        LinearLayoutManager linearLayoutManager = new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false);
+        recyclerView.setLayoutManager(linearLayoutManager);
         recyclerView.setItemAnimator(new DefaultItemAnimator());
 
-        adapter = new ListRecyclerAdapter(recyclerView, list);
+        adapter = new ListUGCRecyclerAdapter(recyclerView, list);
         recyclerView.setAdapter(adapter);
+        recyclerView.setNestedScrollingEnabled(false);
+        recyclerView.addOnScrollListener(setupScroll(linearLayoutManager));
+    }
 
-        recyclerView.addOnItemTouchListener(new RecyclerTouchListener(getApplicationContext(), recyclerView, new ClickListener() {
+    private void getFirstData() {
+        int index = 0;
+        UGCController.getLatestUGC(index, limit, new GeneralController.ConsumeApiListenerArr<UGCHomeResponseModel>() {
             @Override
-            public void onClick(View view, int position) {
-                UGCModel ugcModel = list.get(position);
-                Toast.makeText(getApplicationContext(), ugcModel.title + " is selected!", Toast.LENGTH_SHORT).show();
-            }
-
-            @Override
-            public void onLongClick(View view, int position) {
-                UGCModel ugcModel = list.get(position);
-                Toast.makeText(getApplicationContext(), ugcModel.title + " is selected! Long clicked", Toast.LENGTH_SHORT).show();
-            }
-        }));
-
-        adapter.setOnLoadMoreListener(new OnLoadMoreListener() {
-            @Override
-            public void onLoadMore() {
-                adapter.load(list, adapter, 10);
+            public void onReceive(boolean status, String message, List data) {
+                if (status) {
+                    for (int i = 0; i < data.size(); i++) {
+                        UGCHomeResponseModel latestUGCResponseModel = (UGCHomeResponseModel) data.get(i);
+                        Log.e("Din", "" + latestUGCResponseModel.getTitle());
+                        list.add(latestUGCResponseModel);
+                        adapter.notifyItemInserted(list.size());
+                    }
+                    isLoading = false;
+                } else {
+                    Log.e(getClass().getSimpleName(), "Failed get data");
+                }
             }
         });
     }
 
-    private void createData() {
-        for (int i = 1; i <= 20; i++) {
-            UGCModel ugcModel = new UGCModel(i, "Title " + i, "Category " + i);
-            list.add(ugcModel);
-        }
+    public void load(final int index, final int limit) {
+        new Handler().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                UGCController.getLatestUGC(index + 1, limit, new GeneralController.ConsumeApiListenerArr<UGCHomeResponseModel>() {
+                    @Override
+                    public void onReceive(boolean status, String message, List data) {
+                        if (status) {
+                            for (int i = 0; i < data.size(); i++) {
+                                UGCHomeResponseModel latestUGCResponseModel = (UGCHomeResponseModel) data.get(i);
+                                Log.e("RECYCLER UGC : ", i + " - " + latestUGCResponseModel.getTitle());
+                                list.add(latestUGCResponseModel);
+                                adapter.notifyItemInserted(list.size());
+                            }
+                            adapter.setLoaded();
+                        } else {
+                            Log.e(getClass().getSimpleName(), "Failed get data");
+                        }
+                    }
+                });
+            }
+        }, 3000);
+
     }
 
+    private OnScrollListenerExtended setupScroll(RecyclerView.LayoutManager layoutManager) {
+        return new OnScrollListenerExtended((LinearLayoutManager) layoutManager) {
+            @Override
+            public void onLoadMore(int current_page) {
+                /*adapter.isLoading();
+                adapter.addLoadingFooter();
+                adapter.addLoadingView();*/
+                load(list.size(), 10);
+            }
+        };
+    }
 }
